@@ -25,10 +25,10 @@ function useDevices() {
 
         deviceAndCaps.sort((a, b) => {
           if (a.capabilities.facingMode === "environment") {
-            return 1
+            return -1
           }
           if (b.capabilities.facingMode === "environment") {
-            return -1
+            return 1
           }
         })
         setDeviceAndCaps(deviceAndCaps)
