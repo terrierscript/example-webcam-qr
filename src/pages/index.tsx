@@ -2,6 +2,7 @@ import Head from 'next/head'
 import React, { useEffect, useRef, useState } from 'react'
 import Webcam from 'react-webcam'
 import { BrowserQRCodeReader } from "@zxing/browser"
+import unique from "just-unique"
 // import {BrowserQRCodeReader} from "@zxing/library"
 
 function useDevices() {
@@ -41,11 +42,11 @@ function useDevices() {
   }
 }
 
-
-export default function Home() {
+const QrCodeReader = ({onReadQR}) => {
   const { device } = useDevices()
   const deviceId = device?.id
   const codeReader = useRef(new BrowserQRCodeReader())
+  const ref = useRef()
   useEffect(() => {
     if (!deviceId) {
       return 
@@ -53,23 +54,42 @@ export default function Home() {
     codeReader.current.decodeOnceFromStream(device)
   },[deviceId])
 
+
+  return <Webcam
+    audio={false}
+    videoConstraints={{deviceId: device?.id}}
+    onUserMedia={(stream) => {
+      codeReader
+        .current
+        .decodeFromVideoDevice(device, ref.current, (r) => {
+          console.log(r)
+          if (r) {
+            onReadQR(r)
+          }
+        })
+    }}
+  />
+  
+}
+
+export default function Home() {
+  const [qrCodes, setQrCodes] = useState([])
+  console.log(qrCodes)
   return (
-    <div >
+    <div>
       <Head>
         <title>Create Next App</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Webcam
-        audio={false}
-        videoConstraints={{deviceId: device?.id}}
-        // videoConstraints={{ facingMode: { exact: "environment" } }}
-        // onError={e =>console.log(e)}
-        onUserMedia={(stream) => {
-          console.log(stream)
-          // codeReader.current.decodeOnceFromVideoDevice(stream)
-        }}
-      />
-      <div>a</div>
+      <QrCodeReader onReadQR={({ text }) => {
+        console.log("ONREAD",text)
+        setQrCodes((codes) => {
+          return unique([text, ...codes])
+        })
+      }}/>
+      <div>
+        {qrCodes.map(qr => <div key={qr}>{qr}</div>)}
+      </div>
     </div>
   )
 }
