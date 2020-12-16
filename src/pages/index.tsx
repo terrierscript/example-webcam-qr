@@ -38,12 +38,13 @@ function useDevices() {
     switcDevice: () => {
       setCurrentDeviceIdx((currentDeviceIdx + 1) % deviceAndCaps.length)
     },
-    device: deviceAndCaps[currentDeviceIdx]?.device
+    device: deviceAndCaps[currentDeviceIdx]?.device,
+    deviceAndCaps
   }
 }
 
 const QrCodeReader = ({onReadQR}) => {
-  const { device } = useDevices()
+  const { device,deviceAndCaps } = useDevices()
   const deviceId = device?.id
   const codeReader = useRef(new BrowserQRCodeReader())
   const ref = useRef()
@@ -55,7 +56,7 @@ const QrCodeReader = ({onReadQR}) => {
   },[deviceId])
 
 
-  return <Webcam
+  return <div><Webcam
     audio={false}
     videoConstraints={{deviceId: device?.id}}
     onUserMedia={(stream) => {
@@ -69,6 +70,8 @@ const QrCodeReader = ({onReadQR}) => {
         })
     }}
   />
+    <div>{JSON.stringify(deviceAndCaps,null,2)}</div>
+  </div>
   
 }
 
