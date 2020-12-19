@@ -3,9 +3,37 @@ import React, { useEffect, useRef, useState } from 'react'
 import { BrowserQRCodeReader } from "@zxing/browser"
 import unique from "just-unique"
 import { Box, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
+import { error } from 'console'
+
+class ErrorBoundary extends React.Component<{}, {hasError: boolean, error: any}> {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true, error };
+  }
+
+  // componentDidCatch(error, errorInfo) {
+  //   // You can also log the error to an error reporting service
+  //   logErrorToMyService(error, errorInfo);
+  // }
+
+  render() {
+    if (this.state.hasError) {
+      // You can render any custom fallback UI
+      return <h1>{JSON.stringify(this.state.error)}</h1>;
+    }
+
+    return this.props.children; 
+  }
+}
 
 function useDevicesAndCapabilities() {
   const [trackAndCaps, setTrackAndCaps] = useState([])
+
   useEffect(
     () => {
       navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
@@ -63,35 +91,40 @@ const QrCodeReader = ({ onReadQRCode}) => {
   return <video style={{ maxWidth: "100%", maxHeight: "100%" }} ref={ref}/> 
 }
 
-export default function Home() {
+const App = () => {
   const [qrCodes, setQrCodes] = useState([])
+  return <Container>
+    <Flex maxW="100vw" maxH="100vh" flexDirection="column">
+      <Box flex={1} height={"50vh"}>
+        <QrCodeReader onReadQRCode={({ text }) => {
+          setQrCodes((codes) => {
+            return unique([text, ...codes])
+          })
+        }}/>
+      </Box>
+      <Box flex={1} height={"50vh"}>
+        <Heading>Result</Heading>
+        <Table>
+          <Tbody>
+            {qrCodes.map(qr => <Tr key={qr}>
+              <Td>
+                <Fade in={true}>{qr}</Fade>
+              </Td>
+            </Tr>)}
+          </Tbody>
+        </Table>
+      </Box>
+    </Flex>
+  </Container>
+}
+export default function Home() {
   return (
     <div>
-      <ChakraProvider>
-        <Container>
-          <Flex maxW="100vw" maxH="100vh" flexDirection="column">
-            <Box flex={1} height={"50vh"}>
-              <QrCodeReader onReadQRCode={({ text }) => {
-                setQrCodes((codes) => {
-                  return unique([text, ...codes])
-                })
-              }}/>
-            </Box>
-            <Box flex={1} height={"50vh"}>
-              <Heading>Result</Heading>
-              <Table>
-                <Tbody>
-                  {qrCodes.map(qr => <Tr key={qr}>
-                    <Td>
-                      <Fade in={true}>{qr}</Fade>
-                    </Td>
-                  </Tr>)}
-                </Tbody>
-              </Table>
-            </Box>
-          </Flex>
-        </Container>
-      </ChakraProvider>
+      <ErrorBoundary>
+        <ChakraProvider>
+          <App/>
+        </ChakraProvider>
+      </ErrorBoundary>
     </div>
   )
 }
