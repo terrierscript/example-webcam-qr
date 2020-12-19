@@ -5,24 +5,27 @@ import unique from "just-unique"
 import { Box, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
 import { error } from 'console'
 
-class ErrorBoundary extends React.Component<{}, {hasError: boolean, error: any}> {
+class ErrorBoundary extends React.Component<{}, any> {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { error: null };
   }
 
   static getDerivedStateFromError(error) {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true, error };
+    return { error };
   }
 
-  // componentDidCatch(error, errorInfo) {
-  //   // You can also log the error to an error reporting service
-  //   logErrorToMyService(error, errorInfo);
-  // }
+  componentDidCatch(error, errorInfo) {
+    // You can also log the error to an error reporting service
+    // logErrorToMyService(error, errorInfo);
+    this.setState({ 
+      error: [error, ...this.state.error]
+    })
+  }
 
   render() {
-    if (this.state.hasError) {
+    if (this.state.error) {
       // You can render any custom fallback UI
       return <h1>{JSON.stringify(this.state.error)}</h1>;
     }
