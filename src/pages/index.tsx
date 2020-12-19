@@ -8,13 +8,15 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 
 function useTrackAndCapabilities() {
   const [trackAndCapabilities, setTrackAndCaps] = useState([])
-  const [isError, setIsError] = useState(false)
+  const [isCompatBrowser, setIsCompatBrowser] = useState<boolean|undefined>()
 
   useEffect(
     () => {
       if (!navigator?.mediaDevices?.getUserMedia) {
-        setIsError(true)
+        setIsCompatBrowser(false)
+        return
       }
+      setIsCompatBrowser(true)
       navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
         const tracks = stream.getTracks()
         const deviceAndCaps = tracks
@@ -24,18 +26,15 @@ function useTrackAndCapabilities() {
           setTrackAndCaps(deviceAndCaps)
       })
     }, [])
-  return { trackAndCapabilities, isError }
+  return { trackAndCapabilities, isCompatBrowser }
 }
 
 function useDevices() {
-  const { trackAndCapabilities, isError } = useTrackAndCapabilities()
+  const { trackAndCapabilities, isCompatBrowser } = useTrackAndCapabilities()
   const [devices, setDevices] = useState([])
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
 
   useEffect(() => {
-    if(isError){
-      return
-    }
     const sortedDevices = trackAndCapabilities.sort((a, b) => {
       if (a.capabilities.facingMode === "environment") {
         return -1
@@ -47,10 +46,10 @@ function useDevices() {
       return dev.device
     })
     setDevices(sortedDevices)
-  }, [trackAndCapabilities, isError])
+  }, [trackAndCapabilities])
     
   return {
-    isError,
+    isCompatBrowser,
     switcDevice: () => {
       setCurrentDeviceIdx((currentDeviceIdx + 1) % devices.length)
     },
@@ -60,7 +59,7 @@ function useDevices() {
 
 
 const QrCodeReader = ({ onReadQRCode}) => {
-  const { currentDevice, isError, switcDevice } = useDevices()
+  const { currentDevice, isCompatBrowser, switcDevice } = useDevices()
   const deviceId = currentDevice?.id
   const codeReader = useRef(new BrowserQRCodeReader())
   const ref = useRef()
@@ -71,7 +70,7 @@ const QrCodeReader = ({ onReadQRCode}) => {
       }
     })
   }, [deviceId])
-  if (isError) {
+  if (!isCompatBrowser) {
     return <div>This browser cannot use camera</div>
   }
   return <Box>
