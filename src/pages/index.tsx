@@ -1,49 +1,32 @@
 import Head from 'next/head'
 import React, { useEffect, useRef, useState } from 'react'
-import Webcam from 'react-webcam'
 import { BrowserQRCodeReader } from "@zxing/browser"
 import unique from "just-unique"
-import { Flex } from '@chakra-ui/react'
-
+import { Box, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
 
 function useDevicesAndCapabilities() {
-  const [deviceAndCaps, setDeviceAndCaps] = useState([])
-
+  const [trackAndCaps, setTrackAndCaps] = useState([])
   useEffect(
     () => {
       navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
         const tracks = stream.getTracks()
-        return tracks
-          // .filter(({ kind }) => kind === "videoinput")
-          .map(d => {
-            return {device: d, capabilities: d.getCapabilities()}
+        const deviceAndCaps = tracks
+          .map(track => {
+            return {track: track, capabilities: track.getCapabilities()}
           })
+          setTrackAndCaps(deviceAndCaps)
       })
-    //   navigator.mediaDevices.enumerateDevices().then((devices) => {
-    //     const deviceAndCaps = devices
-    //       .filter(({ kind }) => kind === "videoinput")
-    //       .map((d) => {
-    //         // @ts-expect-error
-    //         if (typeof d.getCapabilities !== "function") {
-    //           return null
-    //         }
-    //         // @ts-expect-error
-    //         return { device: d, capabilities: d.getCapabilities() }
-    //       }).
-    //       filter(item => !!item)
-    //     setDeviceAndCaps(deviceAndCaps)
-    //   })
     }, [])
-  return deviceAndCaps
+  return trackAndCaps
 }
 
 function useDevices() {
-  const _deviceAndCaps = useDevicesAndCapabilities()
+  const deviceAndCaps = useDevicesAndCapabilities()
   const [devices, setDevices] = useState([])
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
 
   useEffect(() => {
-    const sortedDevices = _deviceAndCaps.sort((a, b) => {
+    const sortedDevices = deviceAndCaps.sort((a, b) => {
       if (a.capabilities.facingMode === "environment") {
         return -1
       }
@@ -54,9 +37,8 @@ function useDevices() {
       return dev.device
     })
     setDevices(sortedDevices)
-  }, [_deviceAndCaps])
-  
-  
+  }, [deviceAndCaps])
+    
   return {
     switcDevice: () => {
       setCurrentDeviceIdx((currentDeviceIdx + 1) % devices.length)
@@ -65,7 +47,8 @@ function useDevices() {
   }
 }
 
-const QrCodeReader = ({onReadQR}) => {
+
+const QrCodeReader = ({ onReadQRCode}) => {
   const { device } = useDevices()
   const deviceId = device?.id
   const codeReader = useRef(new BrowserQRCodeReader())
@@ -73,36 +56,42 @@ const QrCodeReader = ({onReadQR}) => {
   useEffect(() => {
     codeReader.current.decodeFromVideoDevice(device, ref.current, (r) => {
       if (r) {
-        onReadQR(r)
+        onReadQRCode(r)
       }
     })
-  },[deviceId])
-  return <div>
-    <video ref={ref}/>
-    <pre>{JSON.stringify(device,null,2)}</pre>
-  </div>
-  
+  }, [deviceId])
+  return <video style={{ maxWidth: "100%", maxHeight: "100%" }} ref={ref}/> 
 }
 
 export default function Home() {
   const [qrCodes, setQrCodes] = useState([])
   return (
     <div>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <Flex>
-        <QrCodeReader onReadQR={({ text }) => {
-          console.log("ONREAD",text)
-          setQrCodes((codes) => {
-            return unique([text, ...codes])
-          })
-        }}/>
-        <div>
-          {qrCodes.map(qr => <div key={qr}>{qr}</div>)}
-        </div>
-      </Flex>
+      <ChakraProvider>
+        <Container>
+          <Flex maxW="100vw" maxH="100vh" flexDirection="column">
+            <Box flex={1} height={"50vh"}>
+              <QrCodeReader onReadQRCode={({ text }) => {
+                setQrCodes((codes) => {
+                  return unique([text, ...codes])
+                })
+              }}/>
+            </Box>
+            <Box flex={1} height={"50vh"}>
+              <Heading>Result</Heading>
+              <Table>
+                <Tbody>
+                  {qrCodes.map(qr => <Tr key={qr}>
+                    <Td>
+                      <Fade in={true}>{qr}</Fade>
+                    </Td>
+                  </Tr>)}
+                </Tbody>
+              </Table>
+            </Box>
+          </Flex>
+        </Container>
+      </ChakraProvider>
     </div>
   )
 }
