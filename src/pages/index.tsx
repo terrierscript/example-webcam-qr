@@ -2,43 +2,19 @@ import Head from 'next/head'
 import React, { useEffect, useRef, useState } from 'react'
 import { BrowserQRCodeReader } from "@zxing/browser"
 import unique from "just-unique"
-import { Box, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
+import { Box, Button, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
 import { error } from 'console'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 
-class ErrorBoundary extends React.Component<{}, any> {
-  constructor(props) {
-    super(props);
-    this.state = { error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI.
-    return { error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    // You can also log the error to an error reporting service
-    // logErrorToMyService(error, errorInfo);
-    this.setState({ 
-      error: [error, ...this.state.error]
-    })
-  }
-
-  render() {
-    if (this.state.error) {
-      // You can render any custom fallback UI
-      return <h1>{JSON.stringify(this.state.error)}</h1>;
-    }
-
-    return this.props.children; 
-  }
-}
-
-function useDevicesAndCapabilities() {
-  const [trackAndCaps, setTrackAndCaps] = useState([])
+function useTrackAndCapabilities() {
+  const [trackAndCapabilities, setTrackAndCaps] = useState([])
+  const [isError, setIsError] = useState(false)
 
   useEffect(
     () => {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        setIsError(true)
+      }
       navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
         const tracks = stream.getTracks()
         const deviceAndCaps = tracks
@@ -48,16 +24,19 @@ function useDevicesAndCapabilities() {
           setTrackAndCaps(deviceAndCaps)
       })
     }, [])
-  return trackAndCaps
+  return { trackAndCapabilities, isError }
 }
 
 function useDevices() {
-  const deviceAndCaps = useDevicesAndCapabilities()
+  const { trackAndCapabilities, isError } = useTrackAndCapabilities()
   const [devices, setDevices] = useState([])
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
 
   useEffect(() => {
-    const sortedDevices = deviceAndCaps.sort((a, b) => {
+    if(isError){
+      return
+    }
+    const sortedDevices = trackAndCapabilities.sort((a, b) => {
       if (a.capabilities.facingMode === "environment") {
         return -1
       }
@@ -68,36 +47,48 @@ function useDevices() {
       return dev.device
     })
     setDevices(sortedDevices)
-  }, [deviceAndCaps])
+  }, [trackAndCapabilities, isError])
     
   return {
+    isError,
     switcDevice: () => {
       setCurrentDeviceIdx((currentDeviceIdx + 1) % devices.length)
     },
-    device: devices[currentDeviceIdx],
+    currentDevice: devices[currentDeviceIdx],
   }
 }
 
 
 const QrCodeReader = ({ onReadQRCode}) => {
-  const { device } = useDevices()
-  const deviceId = device?.id
+  const { currentDevice, isError, switcDevice } = useDevices()
+  const deviceId = currentDevice?.id
   const codeReader = useRef(new BrowserQRCodeReader())
   const ref = useRef()
   useEffect(() => {
-    codeReader.current.decodeFromVideoDevice(device, ref.current, (r) => {
+    codeReader.current.decodeFromVideoDevice(currentDevice, ref.current, (r) => {
       if (r) {
         onReadQRCode(r)
       }
     })
   }, [deviceId])
-  return <video style={{ maxWidth: "100%", maxHeight: "100%" }} ref={ref}/> 
+  if (isError) {
+    return <div>This browser cannot use camera</div>
+  }
+  return <Box>
+    <video
+      style={{ maxWidth: "100%", maxHeight: "100%" }}
+      ref={ref}
+    /> 
+    <Button colorScheme="blue" onClick={switcDevice}>
+      Switch Camera
+    </Button>
+  </Box>
 }
 
 const App = () => {
   const [qrCodes, setQrCodes] = useState([])
   return <Container>
-    <Flex maxW="100vw" maxH="100vh" flexDirection="column">
+    <Flex  flexDirection="column">
       <Box flex={1} height={"50vh"}>
         <QrCodeReader onReadQRCode={({ text }) => {
           setQrCodes((codes) => {
