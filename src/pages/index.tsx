@@ -65,22 +65,21 @@ function useQrCameraChoose() {
 }
 
 
-const QrCameraVideo = ({ deviceId, onReadQRCode }) => {
+const QrCameraVideo = ({  onReadQRCode }) => {
   const codeReader = useRef(new BrowserQRCodeReader())
   const controlsRef = useRef<IScannerControls|undefined>()
   const videoRef = useRef()
 
   useEffect(() => {
-    console.log("id",deviceId)
-    if (!deviceId || !videoRef.current) {
-      return
-    }
+    // console.log("id",deviceId)
+    // if (!deviceId || !videoRef.current) {
+    //   return
+    // }
     codeReader.current.decodeFromVideoDevice(
+      // undefinedを指定すると、勝手にfacingModeを指定してくれる。see: https://github.com/zxing-js/browser/blob/dd2e5fc8d5849c044d0db21b9e0dc5fdc76e0c4c/src/readers/BrowserCodeReader.ts#L771-L775
       undefined,
-      // deviceId,
       videoRef.current, (result, error, controls) => {
       if (error) {
-        // console.error(error)
         return
       }
       if (result) {
@@ -92,33 +91,31 @@ const QrCameraVideo = ({ deviceId, onReadQRCode }) => {
       if (!controlsRef.current) {
         return
       }
+      
       controlsRef.current.stop()
       controlsRef.current = null
     }
-  }, [deviceId])
+  }, [])
 
   return <video
-    style={{ maxWidth: "100%", maxHeight: "100%" }}
+    style={{ maxWidth: "100%", maxHeight: "100%",height:"100%" }}
     ref={videoRef}
   /> 
  
 }
 const QrCodeReader = ({ onReadQRCode}) => {
-  const { currentDevice, error, switcDevice } = useQrCameraChoose()
-  const currentDeviceId = currentDevice?.id
+  // const { currentDevice, error, switcDevice } = useQrCameraChoose()
+  // const currentDeviceId = currentDevice?.id
   
-  if (error) {
-    return <div>This browser cannot use camera</div>
-  }
+  // if (error) {
+  //   return <div>This browser cannot use camera</div>
+  // }
 
-  return <Box>
+  return <Center height="100%" py={4}>
     <QrCameraVideo
-      deviceId={currentDeviceId} onReadQRCode={onReadQRCode}
+       onReadQRCode={onReadQRCode}
     /> 
-    <Button colorScheme="blue" onClick={switcDevice}>
-      Switch Camera
-    </Button>
-  </Box>
+  </Center>
 }
 
 const QrCodeResult = ({qrCodes}) => {
