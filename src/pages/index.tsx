@@ -4,77 +4,13 @@ import unique from "just-unique"
 import { Box, Button, Center, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 
-function useTrackAndCapabilities() {
-  const [tracks, setTracks] = useState<MediaStreamTrack[]>([])
-  const [error, setError] = useState<unknown>()
 
-  useEffect(
-    () => {
-      try {
-        navigator.mediaDevices.getUserMedia(
-          { video: { facingMode: 'environment' } }
-        // { video: true }
-          ).then(stream => {
-          const tracks = stream.getTracks()
-          setTracks(tracks)
-        })
-      } catch (e) {
-        setError(e)
-      }
-    }, [])
-  return { tracks, error }
-}
-
-function sortTracksByFacingMode(tracks: MediaStreamTrack[]) {
-  const trackAndCapabilities = tracks.map(track => {
-    return {track, capabilities: track.getCapabilities()}
-  })
-
-  const sortedDevices = [...trackAndCapabilities].sort((a, b) => {
-    if (a.capabilities.facingMode.includes("environment")) {
-      return -1
-    }
-    if (b.capabilities.facingMode.includes("environment")) {
-      return 1
-    }
-  }).map((dev) => {
-    return dev.track
-  })
-
-  return sortedDevices
-}
-
-function useQrCameraChoose() {
-  const { tracks, error } = useTrackAndCapabilities()
-  const [devices, setDevices] = useState([])
-  const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
-
-  useEffect(() => {
-    const sortedDevices = sortTracksByFacingMode(tracks)
-    console.log(sortedDevices)
-    setDevices(sortedDevices)
-  }, [tracks])
-    
-  return {
-    error,
-    switcDevice: () => {
-      setCurrentDeviceIdx((currentDeviceIdx + 1) % devices.length)
-    },
-    currentDevice: devices[currentDeviceIdx],
-  }
-}
-
-
-const QrCameraVideo = ({  onReadQRCode }) => {
+const QrCodeReader = ({ onReadQRCode}) => {
   const codeReader = useRef(new BrowserQRCodeReader())
   const controlsRef = useRef<IScannerControls|undefined>()
   const videoRef = useRef()
 
   useEffect(() => {
-    // console.log("id",deviceId)
-    // if (!deviceId || !videoRef.current) {
-    //   return
-    // }
     codeReader.current.decodeFromVideoDevice(
       // undefinedを指定すると、勝手にfacingModeを指定してくれる。see: https://github.com/zxing-js/browser/blob/dd2e5fc8d5849c044d0db21b9e0dc5fdc76e0c4c/src/readers/BrowserCodeReader.ts#L771-L775
       undefined,
@@ -103,20 +39,6 @@ const QrCameraVideo = ({  onReadQRCode }) => {
   /> 
  
 }
-const QrCodeReader = ({ onReadQRCode}) => {
-  // const { currentDevice, error, switcDevice } = useQrCameraChoose()
-  // const currentDeviceId = currentDevice?.id
-  
-  // if (error) {
-  //   return <div>This browser cannot use camera</div>
-  // }
-
-  return <Center height="100%" py={4}>
-    <QrCameraVideo
-       onReadQRCode={onReadQRCode}
-    /> 
-  </Center>
-}
 
 const QrCodeResult = ({qrCodes}) => {
   return <Table>
@@ -131,16 +53,7 @@ const QrCodeResult = ({qrCodes}) => {
 }
 
 const App = () => {
-  const [tap, setTap] = useState(false)
   const [qrCodes, setQrCodes] = useState([])
-  
-  // if (!tap) {
-  //   return <Container>
-  //     <Center>
-  //       <Button onClick={() => setTap(true)}>Start QR Reader</Button>
-  //     </Center>
-  //   </Container>
-  // }
 
   return <Container>
     <Flex flexDirection="column">
