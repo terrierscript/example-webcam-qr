@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser"
 import unique from "just-unique"
-import { Box, Button, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
+import { Box, Button, Center, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 
 function useTrackAndCapabilities() {
@@ -48,6 +48,7 @@ function useQrCameraChoose() {
 
   useEffect(() => {
     const sortedDevices = sortTracksByFacingMode(tracks)
+    console.log(sortedDevices)
     setDevices(sortedDevices)
   }, [tracks])
     
@@ -67,7 +68,8 @@ const QrCameraVideo = ({ deviceId, onReadQRCode }) => {
   const videoRef = useRef()
 
   useEffect(() => {
-    if (!deviceId) {
+    console.log("id",deviceId)
+    if (!deviceId || !videoRef.current) {
       return
     }
     codeReader.current.decodeFromVideoDevice(deviceId, videoRef.current, (result, error, controls) => {
@@ -125,7 +127,17 @@ const QrCodeResult = ({qrCodes}) => {
 }
 
 const App = () => {
+  const [tap, setTap] = useState(false)
   const [qrCodes, setQrCodes] = useState([])
+  
+  // if (!tap) {
+  //   return <Container>
+  //     <Center>
+  //       <Button onClick={() => setTap(true)}>Start QR Reader</Button>
+  //     </Center>
+  //   </Container>
+  // }
+
   return <Container>
     <Flex flexDirection="column">
       <Box flex={1} height={"50vh"}>
