@@ -1,9 +1,7 @@
-import Head from 'next/head'
 import React, { useEffect, useRef, useState } from 'react'
 import { BrowserQRCodeReader } from "@zxing/browser"
 import unique from "just-unique"
 import { Box, Button, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
-import { error } from 'console'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 
 function useTrackAndCapabilities() {
@@ -28,6 +26,7 @@ function sortTracksByFacingMode(tracks: MediaStreamTrack[]) {
   const trackAndCapabilities = tracks.map(track => {
     return {track, capabilities: track.getCapabilities()}
   })
+
   const sortedDevices = [...trackAndCapabilities].sort((a, b) => {
     if (a.capabilities.facingMode.includes("environment")) {
       return -1
