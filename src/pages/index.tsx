@@ -68,6 +68,10 @@ const QrCameraVideo = ({ deviceId,onReadQRCode }) => {
 
   useEffect(() => {
     codeReader.current.decodeFromVideoDevice(deviceId, videoRef.current, (result, error, controls) => {
+      if (error) {
+        console.error(error)
+        return
+      }
       if (result) {
         onReadQRCode(result)
       }
