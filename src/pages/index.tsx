@@ -7,49 +7,53 @@ import { error } from 'console'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 
 function useTrackAndCapabilities() {
-  const [trackAndCapabilities, setTrackAndCaps] = useState([])
-  const [isCompatBrowser, setIsCompatBrowser] = useState<boolean|undefined>()
+  const [tracks, setTracks] = useState<MediaStreamTrack[]>([])
+  const [error, setError] = useState<unknown>()
 
   useEffect(
     () => {
-      if (!navigator?.mediaDevices?.getUserMedia) {
-        setIsCompatBrowser(false)
-        return
+      try {
+        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+          const tracks = stream.getTracks()
+          setTracks(tracks)
+        })
+      } catch (e) {
+        setError(e)
       }
-      setIsCompatBrowser(true)
-      navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
-        const tracks = stream.getTracks()
-        const deviceAndCaps = tracks
-          .map(track => {
-            return {track: track, capabilities: track.getCapabilities()}
-          })
-          setTrackAndCaps(deviceAndCaps)
-      })
     }, [])
-  return { trackAndCapabilities, isCompatBrowser }
+  return { tracks, error }
+}
+
+function sortTracksByFacingMode(tracks: MediaStreamTrack[]) {
+  const trackAndCapabilities = tracks.map(track => {
+    return {track, capabilities: track.getCapabilities()}
+  })
+  const sortedDevices = [...trackAndCapabilities].sort((a, b) => {
+    if (a.capabilities.facingMode.includes("environment")) {
+      return -1
+    }
+    if (b.capabilities.facingMode.includes("environment")) {
+      return 1
+    }
+  }).map((dev) => {
+    return dev.track
+  })
+
+  return sortedDevices
 }
 
 function useDevices() {
-  const { trackAndCapabilities, isCompatBrowser } = useTrackAndCapabilities()
+  const { tracks, error } = useTrackAndCapabilities()
   const [devices, setDevices] = useState([])
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
 
   useEffect(() => {
-    const sortedDevices = trackAndCapabilities.sort((a, b) => {
-      if (a.capabilities.facingMode === "environment") {
-        return -1
-      }
-      if (b.capabilities.facingMode === "environment") {
-        return 1
-      }
-    }).map((dev) => {
-      return dev.device
-    })
+    const sortedDevices = sortTracksByFacingMode(tracks)
     setDevices(sortedDevices)
-  }, [trackAndCapabilities])
+  }, [tracks])
     
   return {
-    isCompatBrowser,
+    error,
     switcDevice: () => {
       setCurrentDeviceIdx((currentDeviceIdx + 1) % devices.length)
     },
@@ -59,7 +63,7 @@ function useDevices() {
 
 
 const QrCodeReader = ({ onReadQRCode}) => {
-  const { currentDevice, isCompatBrowser, switcDevice } = useDevices()
+  const { currentDevice, error, switcDevice } = useDevices()
   const deviceId = currentDevice?.id
   const codeReader = useRef(new BrowserQRCodeReader())
   const ref = useRef()
@@ -70,9 +74,11 @@ const QrCodeReader = ({ onReadQRCode}) => {
       }
     })
   }, [deviceId])
-  if (!isCompatBrowser) {
+  
+  if (error) {
     return <div>This browser cannot use camera</div>
   }
+
   return <Box>
     <video
       style={{ maxWidth: "100%", maxHeight: "100%" }}
@@ -82,6 +88,18 @@ const QrCodeReader = ({ onReadQRCode}) => {
       Switch Camera
     </Button>
   </Box>
+}
+
+const QrCodeResult = ({qrCodes}) => {
+  return <Table>
+    <Tbody>
+      {qrCodes.map(qr => <Tr key={qr}>
+        <Td>
+          <Fade in={true}>{qr}</Fade>
+        </Td>
+      </Tr>)}
+    </Tbody>
+  </Table>
 }
 
 const App = () => {
@@ -97,19 +115,12 @@ const App = () => {
       </Box>
       <Box flex={1} height={"50vh"}>
         <Heading>Result</Heading>
-        <Table>
-          <Tbody>
-            {qrCodes.map(qr => <Tr key={qr}>
-              <Td>
-                <Fade in={true}>{qr}</Fade>
-              </Td>
-            </Tr>)}
-          </Tbody>
-        </Table>
+        <QrCodeResult qrCodes={qrCodes}/>
       </Box>
     </Flex>
   </Container>
 }
+
 export default function Home() {
   return (
     <div>
