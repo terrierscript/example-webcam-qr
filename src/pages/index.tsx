@@ -57,14 +57,14 @@ const App = () => {
 
   return <Container>
     <Flex flexDirection="column">
-      <Box flex={1} height={"50vh"}>
+      <Box flex={1} height={"60vh"}>
         <QrCodeReader onReadQRCode={({ text }) => {
           setQrCodes((codes) => {
             return unique([text, ...codes])
           })
         }}/>
       </Box>
-      <Box flex={1} height={"50vh"}>
+      <Box flex={1} height={"40vh"}>
         <Heading>Result</Heading>
         <QrCodeResult qrCodes={qrCodes}/>
       </Box>
