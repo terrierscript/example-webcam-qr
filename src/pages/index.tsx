@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { BrowserQRCodeReader } from "@zxing/browser"
+import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser"
 import unique from "just-unique"
 import { Box, Button, ChakraProvider, Container, CSSReset, Fade, Flex, Heading, Table, Tbody, Td, Tr } from '@chakra-ui/react'
 import { ErrorBoundary } from '../components/ErrorBoundary'
@@ -41,7 +41,7 @@ function sortTracksByFacingMode(tracks: MediaStreamTrack[]) {
   return sortedDevices
 }
 
-function useDevices() {
+function useQrCameraSelector() {
   const { tracks, error } = useTrackAndCapabilities()
   const [devices, setDevices] = useState([])
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
@@ -61,27 +61,43 @@ function useDevices() {
 }
 
 
-const QrCodeReader = ({ onReadQRCode}) => {
-  const { currentDevice, error, switcDevice } = useDevices()
-  const deviceId = currentDevice?.id
+const QrCameraVideo = ({ deviceId,onReadQRCode }) => {
   const codeReader = useRef(new BrowserQRCodeReader())
-  const ref = useRef()
+  const controlsRef = useRef<IScannerControls|undefined>()
+  const videoRef = useRef()
+
   useEffect(() => {
-    codeReader.current.decodeFromVideoDevice(currentDevice, ref.current, (r) => {
-      if (r) {
-        onReadQRCode(r)
+    codeReader.current.decodeFromVideoDevice(deviceId, videoRef.current, (result, error, controls) => {
+      if (result) {
+        onReadQRCode(result)
       }
+      controlsRef.current = controls
     })
+    return () => {
+      if (!controlsRef.current) {
+        return
+      }
+      return controlsRef.current.stop()
+    }
   }, [deviceId])
+
+  return <video
+    style={{ maxWidth: "100%", maxHeight: "100%" }}
+    ref={videoRef}
+  /> 
+ 
+}
+const QrCodeReader = ({ onReadQRCode}) => {
+  const { currentDevice, error, switcDevice } = useQrCameraSelector()
+  const currentDeviceId = currentDevice?.id
   
   if (error) {
     return <div>This browser cannot use camera</div>
   }
 
   return <Box>
-    <video
-      style={{ maxWidth: "100%", maxHeight: "100%" }}
-      ref={ref}
+    <QrCameraVideo
+      deviceId={currentDeviceId} onReadQRCode={onReadQRCode}
     /> 
     <Button colorScheme="blue" onClick={switcDevice}>
       Switch Camera
