@@ -11,7 +11,10 @@ function useTrackAndCapabilities() {
   useEffect(
     () => {
       try {
-        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        navigator.mediaDevices.getUserMedia(
+          { video: { facingMode: 'environment' } }
+        // { video: true }
+          ).then(stream => {
           const tracks = stream.getTracks()
           setTracks(tracks)
         })
@@ -72,9 +75,12 @@ const QrCameraVideo = ({ deviceId, onReadQRCode }) => {
     if (!deviceId || !videoRef.current) {
       return
     }
-    codeReader.current.decodeFromVideoDevice(deviceId, videoRef.current, (result, error, controls) => {
+    codeReader.current.decodeFromVideoDevice(
+      undefined,
+      // deviceId,
+      videoRef.current, (result, error, controls) => {
       if (error) {
-        console.error(error)
+        // console.error(error)
         return
       }
       if (result) {
@@ -86,7 +92,8 @@ const QrCameraVideo = ({ deviceId, onReadQRCode }) => {
       if (!controlsRef.current) {
         return
       }
-      return controlsRef.current.stop()
+      controlsRef.current.stop()
+      controlsRef.current = null
     }
   }, [deviceId])
 
