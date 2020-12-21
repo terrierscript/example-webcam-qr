@@ -41,7 +41,7 @@ function sortTracksByFacingMode(tracks: MediaStreamTrack[]) {
   return sortedDevices
 }
 
-function useQrCameraSelector() {
+function useQrCameraChoose() {
   const { tracks, error } = useTrackAndCapabilities()
   const [devices, setDevices] = useState([])
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0)
@@ -61,12 +61,15 @@ function useQrCameraSelector() {
 }
 
 
-const QrCameraVideo = ({ deviceId,onReadQRCode }) => {
+const QrCameraVideo = ({ deviceId, onReadQRCode }) => {
   const codeReader = useRef(new BrowserQRCodeReader())
   const controlsRef = useRef<IScannerControls|undefined>()
   const videoRef = useRef()
 
   useEffect(() => {
+    if (!deviceId) {
+      return
+    }
     codeReader.current.decodeFromVideoDevice(deviceId, videoRef.current, (result, error, controls) => {
       if (error) {
         console.error(error)
@@ -92,7 +95,7 @@ const QrCameraVideo = ({ deviceId,onReadQRCode }) => {
  
 }
 const QrCodeReader = ({ onReadQRCode}) => {
-  const { currentDevice, error, switcDevice } = useQrCameraSelector()
+  const { currentDevice, error, switcDevice } = useQrCameraChoose()
   const currentDeviceId = currentDevice?.id
   
   if (error) {
@@ -124,7 +127,7 @@ const QrCodeResult = ({qrCodes}) => {
 const App = () => {
   const [qrCodes, setQrCodes] = useState([])
   return <Container>
-    <Flex  flexDirection="column">
+    <Flex flexDirection="column">
       <Box flex={1} height={"50vh"}>
         <QrCodeReader onReadQRCode={({ text }) => {
           setQrCodes((codes) => {
